@@ -16,6 +16,10 @@ export class Engine {
         this.paramsOverride = {};
         this.frameCount = 0;
         this.timeStart = performance.now();
+        /* ---------------- resize / RT wiring ---------------- */
+        /** Runtime resolution multiplier on top of the quality profile's renderScale
+         *  (1 = use the profile as-is; <1 = faster; >1 = supersampled). */
+        this.resScaleOverride = 1;
         this.debugView = 0;
         this.uniCache = new Map();
         this.canvas = canvas;
@@ -102,10 +106,9 @@ export class Engine {
         }
         return out;
     }
-    /* ---------------- resize / RT wiring ---------------- */
     resize(w, h) {
         const gl = this.gl;
-        const scale = this.qualityProfile.renderScale;
+        const scale = this.qualityProfile.renderScale * this.resScaleOverride;
         const dpr = Math.min(window.devicePixelRatio || 1, this.qualityProfile.dprCap);
         const rw = Math.max(2, Math.round(w * scale * dpr));
         const rh = Math.max(2, Math.round(h * scale * dpr));

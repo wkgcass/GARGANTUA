@@ -163,13 +163,18 @@ vec3 galaxyBand(vec3 dir) {
   float band = exp(-lat * lat * 30.0);
   if (band < 0.002) return vec3(0.0);
 
+  /* Galaxy-frame coordinates (u, v span the band plane, w = latitude).
+     This is a CONTINUOUS linear function of dir — no atan() anywhere — so
+     the FBM field tiles the sky perfectly and the band has no seam at the
+     longitude wrap (unlike sampling noise at lon*2π-lattice coords). */
   vec3 t2 = normalize(cross(n, vec3(0.0, 1.0, 0.0)));
   vec3 t1 = cross(n, t2);
-  float lon = atan(dot(dir, t2), dot(dir, t1));
-  float latn = lat * 5.0;
+  vec3 g = vec3(dot(dir, t1), dot(dir, t2), lat);
 
-  float n1 = fbm3(vec3(lon * 2.1, latn, lon * 0.34), 4);
-  float n2 = fbm3(vec3(lon * 4.3 + 31.7, latn * 2.0, lon * 0.7), 3);
+  /* stretch along the band for streaky clouds, compress across for s/f */
+  vec3 gq = vec3(g.xy * 1.05, g.z * 3.4);
+  float n1 = fbm3(gq * 1.55, 4);
+  float n2 = fbm3(gq * 3.1 + vec3(31.7), 3);
   float dust = 1.0 - smoothstep(0.34, 0.74, 0.62 * n2 + 0.42 * n1);
   float glow = smoothstep(0.02, 0.62, n1);
 

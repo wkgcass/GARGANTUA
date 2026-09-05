@@ -13,10 +13,13 @@ export class HUD {
         this.root = root;
         this.onParam = () => { };
         this.onQuality = () => { };
+        this.onResScale = () => { };
         this.onPreset = () => { };
         this.onCinematic = () => { };
         this.onSnap = () => { };
         this.hideTimer = 0;
+        this.resBtn = null;
+        this.resScale = 1.0;
         this.sliderEls = new Map();
         this.valEls = new Map();
         this.qualityLabel = 'HIGH';
@@ -63,6 +66,19 @@ export class HUD {
             const cur = this.qualityLabel.toLowerCase();
             const next = order[(order.indexOf(cur) + 1) % order.length];
             this.onQuality(next);
+        });
+        /* resolution scale: button cycles, keyboard − / = fine-steps */
+        q('btn-res').addEventListener('click', () => this.stepResScale(1));
+        this.resBtn = q('btn-res');
+        document.addEventListener('keydown', (e) => {
+            if (e.target instanceof HTMLInputElement)
+                return;
+            if (e.key === '-' || e.key === '_') {
+                this.stepResScale(-1);
+            }
+            else if (e.key === '=' || e.key === '+') {
+                this.stepResScale(1);
+            }
         });
         for (let i = 1; i <= 4; i++) {
             q(`btn-preset${i}`).addEventListener('click', () => this.onPreset(i - 1));
@@ -121,6 +137,36 @@ export class HUD {
         this.qualityLabel = label;
         this.qualityEl.textContent = label;
         document.getElementById('btn-q').textContent = `QUALITY: ${label}`;
+    }
+    /** cycle resolution presets; dir=+1 / −1 */
+    stepResScale(dir) {
+        const ps = HUD.RES_PRESETS;
+        let i = ps.findIndex((v) => Math.abs(v - this.resScale) < 1e-6);
+        if (i < 0) {
+            /* current value is custom (e.g. URL override): pick nearest preset
+               in the requested direction, else snap to the closest one */
+            let best = 0;
+            let bestD = Infinity;
+            for (let k = 0; k < ps.length; k++) {
+                const d = Math.abs(ps[k] - this.resScale);
+                if (d < bestD) {
+                    bestD = d;
+                    best = k;
+                }
+            }
+            i = best + dir;
+        }
+        else {
+            i = i + dir;
+        }
+        i = Math.max(0, Math.min(ps.length - 1, i));
+        this.resScale = ps[i];
+        this.onResScale(this.resScale);
+    }
+    setResScaleLabel(s) {
+        this.resScale = s;
+        if (this.resBtn)
+            this.resBtn.textContent = `RES: ${Math.round(s * 100)}%`;
     }
     /* ---------------- params panel ---------------- */
     buildParams() {
@@ -208,8 +254,10 @@ export class HUD {
         this.onPreset = cb.onPreset;
         this.onCinematic = cb.onCinematic;
         this.onSnap = cb.onSnap;
+        this.onResScale = cb.onResScale;
     }
 }
+HUD.RES_PRESETS = [0.5, 0.6, 0.7, 0.8, 1.0, 1.25];
 function qs(id) { return document.getElementById(id); }
 function groupLabel(g) {
     return g === 'PHYSICS' ? 'PHYSICS & DISK' :

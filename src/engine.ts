@@ -124,9 +124,13 @@ export class Engine {
   }
 
   /* ---------------- resize / RT wiring ---------------- */
+  /** Runtime resolution multiplier on top of the quality profile's renderScale
+   *  (1 = use the profile as-is; <1 = faster; >1 = supersampled). */
+  resScaleOverride = 1;
+
   resize(w: number, h: number) {
     const gl = this.gl;
-    const scale = this.qualityProfile.renderScale;
+    const scale = this.qualityProfile.renderScale * this.resScaleOverride;
     const dpr = Math.min(window.devicePixelRatio || 1, this.qualityProfile.dprCap);
     const rw = Math.max(2, Math.round(w * scale * dpr));
     const rh = Math.max(2, Math.round(h * scale * dpr));

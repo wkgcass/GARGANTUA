@@ -13,6 +13,7 @@ const DEBUG_VIEWS: Record<number, string> = {
 export class HUD {
   private onParam: (id: string, v: number) => void = () => {};
   private onQuality: (q: string) => void = () => {};
+  private onResScale: (s: number) => void = () => {};
   private onPreset: (i: number) => void = () => {};
   private onCinematic: (on: boolean) => void = () => {};
   private onSnap: () => void = () => {};
@@ -25,6 +26,9 @@ export class HUD {
   private paramsList: HTMLElement;
   private paramCount: HTMLElement;
   private hideTimer = 0;
+  private resBtn: HTMLElement | null = null;
+  private resScale = 1.0;
+  private static readonly RES_PRESETS = [0.5, 0.6, 0.7, 0.8, 1.0, 1.25];
   private sliderEls = new Map<string, HTMLInputElement>();
   private valEls = new Map<string, HTMLElement>();
   qualityLabel = 'HIGH';
@@ -71,6 +75,14 @@ export class HUD {
       const cur = this.qualityLabel.toLowerCase();
       const next = order[(order.indexOf(cur) + 1) % order.length];
       this.onQuality(next);
+    });
+    /* resolution scale: button cycles, keyboard − / = fine-steps */
+    q('btn-res').addEventListener('click', () => this.stepResScale(1));
+    this.resBtn = q('btn-res');
+    document.addEventListener('keydown', (e) => {
+      if (e.target instanceof HTMLInputElement) return;
+      if (e.key === '-' || e.key === '_') { this.stepResScale(-1); }
+      else if (e.key === '=' || e.key === '+') { this.stepResScale(1); }
     });
     for (let i = 1; i <= 4; i++) {
       q(`btn-preset${i}`).addEventListener('click', () => this.onPreset(i - 1));
@@ -125,6 +137,32 @@ export class HUD {
     this.qualityLabel = label;
     this.qualityEl.textContent = label;
     document.getElementById('btn-q')!.textContent = `QUALITY: ${label}`;
+  }
+
+  /** cycle resolution presets; dir=+1 / −1 */
+  private stepResScale(dir: number) {
+    const ps = HUD.RES_PRESETS;
+    let i = ps.findIndex((v) => Math.abs(v - this.resScale) < 1e-6);
+    if (i < 0) {
+      /* current value is custom (e.g. URL override): pick nearest preset
+         in the requested direction, else snap to the closest one */
+      let best = 0; let bestD = Infinity;
+      for (let k = 0; k < ps.length; k++) {
+        const d = Math.abs(ps[k] - this.resScale);
+        if (d < bestD) { bestD = d; best = k; }
+      }
+      i = best + dir;
+    } else {
+      i = i + dir;
+    }
+    i = Math.max(0, Math.min(ps.length - 1, i));
+    this.resScale = ps[i];
+    this.onResScale(this.resScale);
+  }
+
+  setResScaleLabel(s: number) {
+    this.resScale = s;
+    if (this.resBtn) this.resBtn.textContent = `RES: ${Math.round(s * 100)}%`;
   }
 
   /* ---------------- params panel ---------------- */
@@ -214,12 +252,14 @@ export class HUD {
     onPreset: (i: number) => void;
     onCinematic: (on: boolean) => void;
     onSnap: () => void;
+    onResScale: (s: number) => void;
   }) {
     this.onParam = cb.onParam;
     this.onQuality = cb.onQuality;
     this.onPreset = cb.onPreset;
     this.onCinematic = cb.onCinematic;
     this.onSnap = cb.onSnap;
+    this.onResScale = cb.onResScale;
   }
 }
 

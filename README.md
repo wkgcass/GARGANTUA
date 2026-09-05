@@ -21,10 +21,11 @@ integrating the null geodesic ODE *in the fragment shader*.
 | Doppler | `g = √(1−1.5·rs/r) / (1−β·cosχ)` — exact invariant; beaming `I ∝ g^n`, temperature shift `T·g` |
 | Redshift | Gravitational redshift of blackbody color & intensity (strength slider) |
 | Lensing | Multiple disk crossings (primary/secondary/tertiary) plus full sky lensing |
-| Sky | Procedural 3-layer starfield + FBM **milky-way band** with dust lanes |
+| Sky | Procedural 3-layer starfield + FBM **milky-way band** with dust lanes (seam-free: sampled in continuous galaxy-frame coords, no atan wrap) |
 | Post | HDR **bloom** (bright-pass + gaussian), **ACES** tonemap, chroma, vignette, grain, exposure |
 | FX | Cinematic letterbox loop, 4 view presets, 21+ parameter HUD, mobile layout |
 | Quality | Standard / High / Cinematic (resolution scale + ray budget + noise octaves), adaptive DPR cap |
+| Resolution | Runtime **resolution scale** button + `−`/`=` keys, 50%–125%, persisted |
 | Persistence | All params + quality stored in `localStorage` |
 | Automation | `window.GARGANTUA` API + `?shot=1&frames=N` URL screenshot |
 
@@ -69,6 +70,7 @@ npm test               # headless acceptance suite (system Chrome + puppeteer-co
 | `C` | Cinematic letterbox loop |
 | `S` | Save PNG |
 | `Q` | Cycle quality |
+| `−` / `=` | Resolution scale (50%–125%, persisted) |
 | `P` | Parameters panel |
 | `M` | Ambient music |
 | `R` | Reset camera |
@@ -89,6 +91,8 @@ window.GARGANTUA.setParam('diskTemp', 12345)
 window.GARGANTUA.getParams()
 window.GARGANTUA.setView(4)
 window.GARGANTUA.setQuality('cinematic')
+window.GARGANTUA.setResScale(0.6)  // runtime resolution multiplier
+window.GARGANTUA.getResScale()
 window.GARGANTUA.snap()   // dataURL
 ```
 

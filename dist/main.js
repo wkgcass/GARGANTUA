@@ -79,7 +79,31 @@ hud.setParamHandlers({
     },
     onCinematic: (on) => rig.setCinematic(on),
     onSnap: () => snapshot(),
+    onResScale: (s) => applyResScale(s),
 });
+/* runtime resolution multiplier (persisted) */
+const RES_KEY = 'gargantua.resScale';
+function applyResScale(s) {
+    engine.resScaleOverride = s;
+    engine.resize(window.innerWidth, window.innerHeight);
+    hud.setResScaleLabel(s);
+    hud.setResolution(engine.getSize()[0], engine.getSize()[1]);
+    try {
+        localStorage.setItem(RES_KEY, String(s));
+    }
+    catch { /* ok */ }
+}
+{
+    let s = 1.0;
+    try {
+        const raw = localStorage.getItem(RES_KEY);
+        if (raw !== null && isFinite(parseFloat(raw)))
+            s = Math.max(0.4, Math.min(2.0, parseFloat(raw)));
+    }
+    catch { /* ok */ }
+    engine.resScaleOverride = s;
+    hud.setResScaleLabel(s);
+}
 hud.bindParams(params, (id, v) => {
     params[id] = v;
     if (id === 'fov')
@@ -131,12 +155,11 @@ catch { /* ok */ }
     rig.applyPreset(pv !== null && parseInt(pv, 10) >= 0 ? parseInt(pv, 10) % 4 : 0);
     rig.setFov(params.fov);
 }
-/* optional render-scale override (tests / weak GPUs): ?scale=0.5 */
+/* optional URL render-scale override: ?scale=0.5 (multiplies quality profile) */
 const scaleOverride = qnum('scale', 1.0);
-engine.qualityProfile = {
-    ...engine.qualityProfile,
-    renderScale: Math.max(0.1, Math.min(2.0, engine.qualityProfile.renderScale * scaleOverride)),
-};
+if (scaleOverride !== 1.0) {
+    applyResScale(Math.max(0.4, Math.min(2.0, scaleOverride)));
+}
 /* initial debug view from URL */
 engine.debugView = Math.min(9, Math.max(0, Math.round(qnum('view', 0))));
 /* ---------------- resize ---------------- */
@@ -181,6 +204,8 @@ window.GARGANTUA = {
     getParams: () => ({ ...params }),
     setView: (v) => { engine.debugView = v; hud.setDebugView(v); },
     setQuality: (q) => setQuality(q),
+    setResScale: (s) => applyResScale(s),
+    getResScale: () => engine.resScaleOverride,
     preset: (i) => rig.applyPreset(i),
     ready: false,
 };
