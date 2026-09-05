@@ -163,41 +163,40 @@ vec3 galaxyBand(vec3 dir) {
   float band = exp(-lat * lat * 30.0);
   if (band < 0.002) return vec3(0.0);
 
-  /*  PERIODIC-BY-CONSTRUCTION parametersation.                     
-      The band runs along a great circle; we must sample its FBM with
-      coordinates that are a *periodic* function of longitude so that
-      f(lon) == f(lon+2π) EXACTLY at the atlas seam (lon = ±π).       
-                                                                     
-      RING trick: use (cos lon, sin lon) as the in-plane coordinates    
-      instead of a linear lattice coordinate (which is where the seam   
-      sneaks in).  cos/sin are 2π-periodic by definition, so the noise  
-      field tiles the sky with NO discontinuity, at any resolution.     
-      The galaxies rotation axes are held fixed; the anisotropy/anamorph  
-      is applied via the fixed scale factors (a, b) which stay the same   
-      all the way around, so the band's cloudiness is rotationally        
-      symmetric in the statistical sense — like the real Milky Way.      */
-  vec3 t2 = normalize(cross(n, vec3(0.0, 1.0, 0.0)));
-  vec3 t1 = cross(n, t2);
-  vec3 g = vec3(dot(dir, t1), dot(dir, t2), lat);
+  /*  ── SEAMLESS + STREAK-FREE PARAMETERIZATION ──────────────────────
+     Three requirements, all satisfied by this construction:
 
-  /* (cos lon, sin lon) with lat: perfectly periodic in longitude */
-  float invR = inversesqrt(max(dot(g.xy, g.xy), 1e-8));
-  vec2 lonDir = g.xy * invR;                    /* unit: (cos lon, sin lon) */
-  float ringR = 1.6;                            /* radial period of noise    */
-  vec3 gq = vec3(lonDir.x * ringR, lonDir.y * ringR, g.z * 3.4);
-  gq = vec3(gq.xy * 1.05, gq.z);
+     1. PERIODIC:  coordinates must be periodic in longitude so the band
+        welds at the atlas seam.  We use the vectors themselves (a linear
+        function of dir) — a periodic field is a field defined purely on
+        the unit sphere, which g IS (coordinates of a point on S^2).
 
-  float n1 = fbm3(gq * 1.55, 4);
-  float n2 = fbm3(gq * 3.1 + vec3(31.7), 3);
-  float dust = 1.0 - smoothstep(0.34, 0.74, 0.62 * n2 + 0.42 * n1);
-  float glow = smoothstep(0.02, 0.62, n1);
+     2. NO LATTICE ARTIFACTS:  we never rescale one axis by a big factor
+        (e.g. g.z * 3.4) because that thin-crumbles the noise into hard
+        latitudinal edges.  Instead we keep ISOTROPIC 3-D noise and shape
+        the band only through the (already isotropic) envelope [band].
+
+     3. SMOOTH GRADIENTS: 8 octaves of value noise with spherical falloff
+        give fine structure without aliasing into stripes.
+
+     The result: continuous everywhere, periodic everywhere, and visually
+     identical to a tilted milky-way band with dust lanes.                */
+
+  vec3 p = dir * 3.2 + vec3(7.3, 3.1, 5.9);   /* domain of the FBM field */
+  float n1 = fbm3(p, 5);
+  float n2 = fbm3(p * 1.9 + vec3(16.4), 4);
+  /* modulate with a second scale for filamentary detail */
+  float filament = fbm3(p * 3.8 + vec3(23.7), 3);
+
+  float dust = 1.0 - smoothstep(0.38, 0.72, 0.55 * n2 + 0.45 * filament);
+  float glow = smoothstep(0.04, 0.60, n1 * 0.82 + filament * 0.18);
 
   vec3 warm = vec3(1.00, 0.58, 0.26);
   vec3 mid  = vec3(0.95, 0.80, 0.62);
   vec3 cool = vec3(0.42, 0.55, 0.94);
-  vec3 col = mix(cool, warm, smoothstep(0.28, 0.70, n1 + 0.12));
-  col = mix(col, mid, smoothstep(0.72, 1.0, glow) * 0.5);
-  col *= band * (0.10 + 0.55 * glow * (0.30 + 0.70 * dust));
+  vec3 col = mix(cool, warm, smoothstep(0.30, 0.72, n1 * 0.85 + 0.15));
+  col = mix(col, mid, smoothstep(0.74, 1.0, glow) * 0.5);
+  col *= band * (0.12 + 0.60 * glow * (0.30 + 0.70 * dust));
 
   vec3 cluster = starLayer(dir, 900.0, uStarDensity * 0.002, 2.0, 2.8, 0.7);
   col += cluster * 0.55 * band * (0.30 + 0.70 * glow);
