@@ -1,0 +1,19 @@
+{
+  "name": "gargantua-black-hole-raymarcher",
+  "version": "1.0.0",
+  "description": "GARGANTUA — real-time Schwarzschild black hole raytracer (volumetric accretion disk, HDR bloom, cinematic)",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "watch": "tsc -p tsconfig.json -w",
+    "start": "node server.mjs",
+    "test": "node test/run-tests.mjs",
+    "audio": "python tools/gen_audio.py",
+    "verify": "python tools/verify_final.py"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^23.11.1",
+    "typescript": "^5.5.4"
+  }
+}

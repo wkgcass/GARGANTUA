@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#000000" />
+  <title>GARGANTUA — Schwarzschild Black Hole Raytracer</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23000'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='%23ff9a3c' stroke-width='3'/%3E%3C/svg%3E" />
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./vendors/three.module.js"
+    }
+  }
+  </script>
+</head>
+<body>
+  <canvas id="gl" aria-label="Black hole raytracer canvas"></canvas>
+
+  <!-- Cinematic letterbox -->
+  <div id="letterbox" class="hidden">
+    <div class="bar bar-top"></div>
+    <div class="bar bar-bottom"></div>
+    <div id="cine-tag">◉ CINEMATIC LOOP</div>
+  </div>
+
+  <!-- HUD -->
+  <header id="hud-top">
+    <div class="brand">
+      <h1>GARGANTUA</h1>
+      <span class="sub">SCHWARZSCHILD RAYTRACER</span>
+    </div>
+    <div class="stats">
+      <span id="fps" class="stat">— FPS</span>
+      <span id="res" class="stat"></span>
+      <span id="quality-badge" class="stat badge"></span>
+    </div>
+  </header>
+
+  <div id="view-label" class="pill hidden"></div>
+
+  <nav id="hud-bottom">
+    <div class="tabbar">
+      <button id="btn-audio" title="Ambient music (M)" class="tb">♪</button>
+      <button id="btn-cine" title="Cinematic loop (C)" class="tb">◉</button>
+      <button id="btn-snap" title="Save PNG (S)" class="tb">⭳</button>
+      <span class="tb-sep"></span>
+      <button id="btn-q" class="tb" title="Cycle quality (Q)">QUALITY: HIGH</button>
+      <span class="tb-sep"></span>
+      <button id="btn-preset1" class="tb preset-btn">INTERSTELLAR</button>
+      <button id="btn-preset2" class="tb preset-btn">EDGE&nbsp;ON</button>
+      <button id="btn-preset3" class="tb preset-btn">FACE&nbsp;ON</button>
+      <button id="btn-preset4" class="tb preset-btn">WIDE&nbsp;CINEMA</button>
+      <span class="tb-sep"></span>
+      <button id="btn-params" class="tb" title="Parameters (P)">PARAMETERS ▸</button>
+      <button id="btn-help" class="tb" title="Help (?)">HELP</button>
+    </div>
+  </nav>
+
+  <!-- Parameters panel -->
+  <aside id="params-panel" class="hidden">
+    <div class="pp-head">
+      <h2>PARAMETERS <span id="param-count"></span></h2>
+      <div class="pp-actions">
+        <button id="btn-reset" class="mini">RESET</button>
+        <button id="btn-close-pp" class="mini">✕</button>
+      </div>
+    </div>
+    <div id="params-list"></div>
+  </aside>
+
+  <!-- Help overlay -->
+  <div id="help-overlay" class="hidden">
+    <div class="help-card">
+      <h2>GARGANTUA — CONTROLS</h2>
+      <div class="help-grid">
+        <div><span class="k">DRAG</span><span>Orbit camera</span></div>
+        <div><span class="k">WHEEL</span><span>Zoom</span></div>
+        <div><span class="k">R-DRAG</span><span>Pan</span></div>
+        <div><span class="k">1–4</span><span>View presets</span></div>
+        <div><span class="k">0–9</span><span>Debug views</span></div>
+        <div><span class="k">C</span><span>Cinematic loop</span></div>
+        <div><span class="k">S</span><span>Save PNG</span></div>
+        <div><span class="k">Q</span><span>Quality</span></div>
+        <div><span class="k">P</span><span>Parameters</span></div>
+        <div><span class="k">M</span><span>Music</span></div>
+        <div><span class="k">SPACE</span><span>Pause sky / time</span></div>
+        <div><span class="k">R</span><span>Reset camera</span></div>
+      </div>
+      <button id="btn-help-close">CLOSE</button>
+    </div>
+  </div>
+
+  <!-- WebGL failure overlay -->
+  <div id="fatal" class="hidden">
+    <div class="fatal-card">
+      <h2>WEBGL UNAVAILABLE</h2>
+      <p id="fatal-msg">Your browser or GPU does not support WebGL2. GARGANTUA requires WebGL2.</p>
+      <p><small>Tips: enable hardware acceleration, update GPU drivers, or use a modern Chrome / Firefox / Edge.</small></p>
+    </div>
+  </div>
+
+  <div id="boot" class="hidden"><div class="boot-ring"></div><span id="boot-msg">INTEGRATING GEODESICS…</span></div>
+
+  <!-- Source maps support -->
+  <script type="module" src="dist/main.js"></script>
+</body>
+</html>
