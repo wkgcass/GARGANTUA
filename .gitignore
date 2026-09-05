@@ -1,4 +1,5 @@
 node_modules/
-shots/
+shots/*
+!shots/final-hero.png
 *.log
 .DS_Store
