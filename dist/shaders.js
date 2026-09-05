@@ -161,16 +161,30 @@ vec3 galaxyBand(vec3 dir) {
   float band = exp(-lat * lat * 30.0);
   if (band < 0.002) return vec3(0.0);
 
-  /* Galaxy-frame coordinates (u, v span the band plane, w = latitude).
-     This is a CONTINUOUS linear function of dir — no atan() anywhere — so
-     the FBM field tiles the sky perfectly and the band has no seam at the
-     longitude wrap (unlike sampling noise at lon*2π-lattice coords). */
+  /*  PERIODIC-BY-CONSTRUCTION parametersation.                     
+      The band runs along a great circle; we must sample its FBM with
+      coordinates that are a *periodic* function of longitude so that
+      f(lon) == f(lon+2π) EXACTLY at the atlas seam (lon = ±π).       
+                                                                     
+      RING trick: use (cos lon, sin lon) as the in-plane coordinates    
+      instead of a linear lattice coordinate (which is where the seam   
+      sneaks in).  cos/sin are 2π-periodic by definition, so the noise  
+      field tiles the sky with NO discontinuity, at any resolution.     
+      The galaxies rotation axes are held fixed; the anisotropy/anamorph  
+      is applied via the fixed scale factors (a, b) which stay the same   
+      all the way around, so the band's cloudiness is rotationally        
+      symmetric in the statistical sense — like the real Milky Way.      */
   vec3 t2 = normalize(cross(n, vec3(0.0, 1.0, 0.0)));
   vec3 t1 = cross(n, t2);
   vec3 g = vec3(dot(dir, t1), dot(dir, t2), lat);
 
-  /* stretch along the band for streaky clouds, compress across for s/f */
-  vec3 gq = vec3(g.xy * 1.05, g.z * 3.4);
+  /* (cos lon, sin lon) with lat: perfectly periodic in longitude */
+  float invR = inversesqrt(max(dot(g.xy, g.xy), 1e-8));
+  vec2 lonDir = g.xy * invR;                    /* unit: (cos lon, sin lon) */
+  float ringR = 1.6;                            /* radial period of noise    */
+  vec3 gq = vec3(lonDir.x * ringR, lonDir.y * ringR, g.z * 3.4);
+  gq = vec3(gq.xy * 1.05, gq.z);
+
   float n1 = fbm3(gq * 1.55, 4);
   float n2 = fbm3(gq * 3.1 + vec3(31.7), 3);
   float dust = 1.0 - smoothstep(0.34, 0.74, 0.62 * n2 + 0.42 * n1);

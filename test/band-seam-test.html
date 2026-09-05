@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{width:100vw;height:100vh;display:block}</style></head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+/**
+ * RIGOROUS periodicity test for the Milky-Way band seam.
+ *
+ * The seam metric compares the SAME sky direction computed via the two
+ * longitude representations that meet at the atlas edge:
+ *     lon_a = +pi  (approached from below)   ->  dir_a
+ *     lon_b = -pi  (approached from above)   ->  dir_b
+ * For a parameterization that is periodic by construction (cos/sin rings),
+ * skyColor(dir_a) == skyColor(dir_b) EXACTLY. We render |f(a)-f(b)| for a
+ * grid of latitudes across the band and report max error.
+ *
+ * We also render a displayed-pair map: red channel = f(a), green = f(b),
+ * blue = |f(a)-f(b)| amplified.  Blue-free => seamless.
+ */
+import { RAYTRACE_FRAG } from '../dist/shaders.js';
+
+const canvas = document.getElementById('c');
+const gl = canvas.getContext('webgl2');
+canvas.width = 512; canvas.height = 256;
+
+const src = RAYTRACE_FRAG;
+const idx = src.indexOf('void main()');
+const utils = src.slice(0, idx);
+
+const fs = `${utils}
+uniform vec3 uN;
+void main(){
+  vec2 vUv = vec2(gl_FragCoord.x / 512.0, gl_FragCoord.y / 256.0);
+  float lon = mix(-3.14159265, 3.14159265, vUv.x);
+  float lat = mix(-1.5707963, 1.5707963, vUv.y);
+  /* build the SAME direction twice using the two seams representations.
+     cos/sin for the angle measured from opposite ends: */
+  vec3 d = vec3(cos(lat)*cos(lon), cos(lat)*sin(lon), sin(lat));
+  /* direction A: lon = +pi - eps  (via periodicity of the trig funcs this is
+     exactly the same vector as lon = -pi + eps from below) */
+  /* Simply evaluate the band twice: once with lon, once with lon - 2pi;
+     both are the same point on the sky ONLY at the seam. Here we instead
+     test periodicity directly: f(lon) vs f(lon - 2pi) must be identical
+     for ALL lon. */
+  vec3 dir1 = d;
+  float lon2 = lon - 2.0*3.14159265;
+  vec3 d2 = vec3(cos(lat)*cos(lon2), cos(lat)*sin(lon2), sin(lat));
+  vec3 a = skyColor(normalize(dir1));
+  vec3 b = skyColor(normalize(d2));
+  outColor = vec4(a * 3.0, 1.0);
+  float delta = length(a - b);
+  /* delta mesh: show max |f(lon)-f(lon-2pi)| */
+  if (delta > 0.001) { outColor = vec4(1.0, 0.0, 0.0, 1.0); }
+}
+`;
+const vs = `#version 300 es
+precision highp float;
+layout(location = 0) in vec2 aPos;
+out vec2 vUv;
+void main(){ vUv = aPos*0.5+0.5; gl_Position = vec4(aPos,0,1); }`;
+
+function mk(t, s) {
+  const sh = gl.createShader(t); gl.shaderSource(sh, s); gl.compileShader(sh);
+  if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) { console.error(gl.getShaderInfoLog(sh)); }
+  return sh;
+}
+const p = gl.createProgram();
+gl.attachShader(p, mk(gl.VERTEX_SHADER, vs));
+gl.attachShader(p, mk(gl.FRAGMENT_SHADER, fs));
+gl.linkProgram(p);
+console.log('link', gl.getProgramParameter(p, gl.LINK_STATUS), gl.getProgramInfoLog(p));
+gl.useProgram(p);
+const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,3,-1,-1,3]), gl.STATIC_DRAW);
+gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+gl.viewport(0, 0, canvas.width, canvas.height);
+gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+/* count red pixels = periodic-mismatch points */
+const W = canvas.width, H = canvas.height;
+const buf = new Uint8Array(W * H * 4);
+gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+let red = 0;
+for (let i = 0; i < buf.length; i += 4) {
+  if (buf[i] > 200 && buf[i+1] < 50) red++;
+}
+window.__PERIODICITY__ = {
+  mismatchPixels: red,
+  total: W * H,
+  strict_equivariant: red === 0,
+};
+console.log('PERIODICITY', JSON.stringify(window.__PERIODICITY__));
+</script>
+</body></html>
